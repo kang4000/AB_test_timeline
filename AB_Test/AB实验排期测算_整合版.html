@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蜜蜂家校小程序端AB实验统一测算平台</title>
+    <style>
+        /* @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap'); */
+        /* Orbitron Regular (font-weight: 400) */
+        @font-face {
+        font-family: 'Orbitron';
+        font-style: normal;
+        font-weight: 400;
+        src: local(''),
+            url('./fonts/orbitron-v34-latin-regular.woff2') format('woff2'); /* */
+        }
+
+        /* Roboto Regular (font-weight: 400) */
+        @font-face {
+        font-family: 'Roboto';
+        font-style: normal;
+        font-weight: 400;
+        src: local(''),
+            url('./fonts/roboto-v48-latin-regular.woff2') format('woff2'); /* */
+        }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg-color: #1e293b;
+            --primary-color: #0ea5e9;
+            --secondary-color: #64748b;
+            --text-color: #e2e8f0;
+            --title-color: #f8fafc;
+            --accent-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --border-color: #334155;
+            --shadow-color: rgba(14, 165, 233, 0.5);
+            --font-family-sans: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            --font-family-tech: 'Orbitron', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family-sans);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            background: var(--card-bg-color);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.4), 0 0 15px var(--shadow-color) inset;
+            padding: 30px 40px;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-family: var(--font-family-tech);
+            font-size: 2.2em;
+            color: var(--title-color);
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+            margin: 0;
+        }
+
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 40px;
+        }
+        
+        .card {
+            background: rgba(0,0,0,0.2);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group.hidden { display: none; }
+
+        .input-group label, .fieldset-legend {
+            display: block;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fieldset {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            padding-top: 30px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .fieldset-legend {
+            font-family: var(--font-family-tech);
+            background: var(--card-bg-color);
+            padding: 0 10px;
+            margin-left: 10px;
+            font-size: 1.1em;
+            position: absolute;
+            top: -14px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-wrapper .input-append {
+            padding: 12px;
+            background-color: #2c3a4f;
+            border: 1px solid var(--border-color);
+            border-left: none;
+            border-radius: 0 6px 6px 0;
+            white-space: nowrap;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 8px var(--shadow-color);
+        }
+
+        .radio-group, .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .radio-group label, .checkbox-group label {
+            display: flex;
+            align-items: center;
+            background-color: var(--bg-color);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-color);
+            font-weight: normal;
+        }
+
+        .radio-group input[type="radio"], .checkbox-group input[type="checkbox"] {
+            display: none;
+        }
+        
+        .checkbox-group input[type="checkbox"]:checked + label,
+        .radio-group input[type="radio"]:checked + label {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            font-weight: bold;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px var(--shadow-color);
+        }
+        
+        .description {
+            font-size: 0.85em;
+            color: var(--secondary-color);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            border: none;
+            border-radius: 6px;
+            color: var(--title-color);
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+            margin-top: 20px;
+            font-family: var(--font-family-tech);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px var(--shadow-color);
+        }
+        
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .output-card {
+            display: none;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0) 70%);
+        }
+        
+        .output-card h2, .details-panel h3 {
+            color: var(--accent-color);
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-family: var(--font-family-tech);
+        }
+        
+        .output-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .output-item {
+            background-color: var(--bg-color);
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary-color);
+        }
+        .output-item.full-width { grid-column: 1 / -1; }
+
+        .output-item-label {
+            font-size: 0.8em;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .output-item-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        
+        .error-message {
+            color: var(--danger-color);
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--danger-color);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .details-panel { display: none; height: fit-content; }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .table-container::-webkit-scrollbar { width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 4px; border: 2px solid var(--bg-color); }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #1a2436;
+            padding: 12px;
+            text-align: left;
+            color: var(--primary-color);
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        tbody td {
+            padding: 10px 12px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.95em;
+        }
+
+        tbody tr:hover { background-color: rgba(14, 165, 233, 0.1); }
+        
+        td:last-child { font-weight: bold; color: var(--accent-color); text-align: right; }
+        td:nth-child(2), td:nth-child(3) { text-align: right; }
+        th:last-child, th:nth-child(2), th:nth-child(3) { text-align: right; }
+        
+        #result_insights {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--bg-color);
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+        #result_insights .result-warning { color: var(--warning-color); font-weight: bold; }
+        
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>蜜蜂家校小程序端AB实验测算平台</h1>
+            <h1>（仅新注册老师）</h1>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="left-panel">
+                <div class="card input-card">
+                    
+                    <div class="fieldset">
+                        <div class="fieldset-legend">第零步: 实验设定</div>
+                        <div class="input-group">
+                            <label for="expName">实验名称</label>
+                            <input type="text" id="expName" placeholder="例如：新版首页UI优化实验" >
+                        </div>
+                        <div class="input-group">
+                           <label for="startDate">AB实验开始日期（after 20250801）</label>
+                           <input type="date" id="startDate" value="2025-09-01" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div class="fieldset">
+                        <div class="fieldset-legend">第一步: 定义框架</div>
+                         <div class="input-group">
+                            <label for="num_variations">1. 实验组数 (包含对照组)</label>
+                            <input type="number" id="num_variations" value="2" min="2">
+                        </div>
+                        <div class="input-group">
+                            <label for="metric_type">2. 核心指标类型</label>
+                            <select id="metric_type">
+                                <option value="proportion" selected>比例类 (如激活率, 点击率)</option>
+                                <option value="mean">均值类 (如人均时长, 人均次数)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="fieldset">
+                        <div class="fieldset-legend">第二步: 设定目标</div>
+                        <div class="input-group">
+                            <label for="baseline_rate" id="baseline_label">3. 基线值</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="baseline_rate" value="10">
+                                <span id="baseline_unit" class="input-append">%</span>
+                            </div>
+                            <p class="description">对照组(A组)当前指标的数值。</p>
+                        </div>
+                        <div class="input-group hidden" id="std_dev_group">
+                            <label for="std_dev">3a. 指标标准差 (Standard Deviation)</label>
+                            <input type="number" id="std_dev" value="50">
+                            <p class="description">仅当指标为均值类时需要。请与BI同学确认该指标的历史标准差。</p>
+                        </div>
+                        <div class="input-group hidden" id="std_dev_ratio_group">
+                            <label for="std_dev_ratio">3b. 组间标准差比率 (最大/最小)</label>
+                            <input type="number" id="std_dev_ratio" value="1.5" min="1" max="5" step="0.1">
+                            <p class="description">用于Welch ANOVA计算，估计组间标准差的最大差异程度。</p>
+                        </div>
+                        <div class="input-group">
+                            <label for="mde">4. 最小可检测效应 (MDE)</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="mde" value="20">
+                                <span id="mde_unit" class="input-append">%</span>
+                            </div>
+                            <div class="radio-group" id="mde_type_group">
+                                <input type="radio" id="mde_relative" name="mde_type" value="relative" checked> 
+                                <label for="mde_relative">相对值%</label>
+                                <input type="radio" id="mde_absolute" name="mde_type" value="absolute">
+                                <label for="mde_absolute">绝对值</label>
+                            </div>
+                            <p class="description" id="mde_desc">您希望实验能检测出的最小变化幅度。</p>
+                        </div>
+                    </div>
+
+                    <div class="fieldset">
+                        <div class="fieldset-legend">第三步: 筛选流量</div>
+                        <div class="input-group">
+                            <label for="exposure_rate">曝光率 (Exposure Rate)</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="exposure_rate" value="100" min="1" max="100">
+                                <span class="input-append">%</span>
+                            </div>
+                            <p class="description">实验流量占每日可用样本量的百分比。100%表示全部可用。</p>
+                        </div>
+                        <div class="input-group">
+                            <label>观测学科 (可多选)</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="sub_all" name="subject" value="all"> <label for="sub_all">不区分</label>
+                                <input type="checkbox" id="sub_chinese" name="subject" value="chinese" checked> <label for="sub_chinese">语文</label>
+                                <input type="checkbox" id="sub_english" name="subject" value="english"> <label for="sub_english">英语</label>
+                                <input type="checkbox" id="sub_math" name="subject" value="math"> <label for="sub_math">数学</label>
+                            </div>
+                             <p class="description">根据科目筛选，会影响每日可用样本量，从而影响实验周期。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fieldset">
+                        <div class="fieldset-legend">第四步: 学段筛选</div>
+                        <div class="input-group">
+                            <label>是否只对小学灰度</label>
+                            <div class="radio-group">
+                                <input type="radio" id="is_primary_no" name="is_primary" value="no" checked>
+                                <label for="is_primary_no">否</label>
+                                <input type="radio" id="is_primary_yes" name="is_primary" value="yes">
+                                <label for="is_primary_yes">是</label>
+                            </div>
+                            <p class="description">选择“是”将会根据小学用户占比(预估70%)，放大所需样本量。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fieldset">
+                        <div class="fieldset-legend">第五步: 高级选项（默认不需要改动）</div>
+                        <div class="input-group">
+                            <label for="power">统计功效 (Power, %)</label>
+                            <input type="number" id="power" value="80" min="1" max="99.9">
+                        </div>
+                        <div class="input-group">
+                            <label for="alpha">显著性水平 (Significance Level α, %)</label>
+                            <input type="number" id="alpha" value="5" min="0.1" max="99">
+                        </div>
+                         <div class="input-group" id="conservative_mode_group">
+                            <label>启用保守计算模式</label>
+                             <div class="radio-group">
+                                 <input type="radio" id="conservative_no" name="conservative" value="no">
+                                 <label for="conservative_no">否</label>
+                                 <input type="radio" id="conservative_yes" name="conservative" value="yes" checked>
+                                 <label for="conservative_yes">是</label>
+                             </div>
+                            <p class="description" id="conservative_desc">
+                                采用更严谨的校正方法或稳健方差估计，所需样本量会更高。
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <button id="calculateBtn">开始统一测算</button>
+                    <div id="errorMessage" class="error-message"></div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                 <div class="card output-card" id="outputCard">
+                    <h2>核心结论</h2>
+                    <div class="output-grid">
+                        <div class="output-item full-width">
+                            <div class="output-item-label">实验名称</div>
+                            <div class="output-item-value" id="outputExpName"></div>
+                        </div>
+                        <div class="output-item">
+                            <div class="output-item-label">每组所需最小样本</div>
+                            <div class="output-item-value" id="outputSamplePerGroup"></div>
+                        </div>
+                        <div class="output-item">
+                            <div class="output-item-label">实验所需总样本 (修正后)</div>
+                            <div class="output-item-value" id="outputTotalSample"></div>
+                        </div>
+                        <div class="output-item">
+                            <div class="output-item-label">预计实验结束日期</div>
+                            <div class="output-item-value" id="outputEndDate"></div>
+                        </div>
+                        <div class="output-item">
+                            <div class="output-item-label">共需实验天数</div>
+                            <div class="output-item-value" id="outputDuration"></div>
+                        </div>
+                        <div class="output-item full-width">
+                            <div class="output-item-label">建议检验方法</div>
+                            <div class="output-item-value" id="outputTestMethod"></div>
+                        </div>
+                    </div>
+                    <div id="result_insights"></div>
+                </div>
+
+                <div class="card details-panel" id="detailsPanel">
+                    <h3>排期计算明细</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>当日新增</th>
+                                    <th>累计样本</th>
+                                    <th>累计进度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dailyData = {
+"2025-08-01": {"math": 97, "chinese": 62, "english": 107, "other": 36, "total": 302}, "2025-08-02": {"math": 97, "chinese": 74, "english": 59, "other": 31, "total": 261},
+"2025-08-03": {"math": 99, "chinese": 102, "english": 83, "other": 27, "total": 311}, "2025-08-04": {"math": 81, "chinese": 65, "english": 89, "other": 32, "total": 267},
+"2025-08-05": {"math": 69, "chinese": 73, "english": 78, "other": 38, "total": 258}, "2025-08-06": {"math": 94, "chinese": 131, "english": 94, "other": 39, "total": 358},
+"2025-08-07": {"math": 60, "chinese": 100, "english": 102, "other": 29, "total": 291}, "2025-08-08": {"math": 32, "chinese": 60, "english": 58, "other": 9, "total": 159},
+"2025-08-09": {"math": 28, "chinese": 47, "english": 53, "other": 19, "total": 147}, "2025-08-10": {"math": 42, "chinese": 51, "english": 52, "other": 35, "total": 180},
+"2025-08-11": {"math": 37, "chinese": 52, "english": 52, "other": 28, "total": 169}, "2025-08-12": {"math": 51, "chinese": 89, "english": 70, "other": 36, "total": 246},
+"2025-08-13": {"math": 37, "chinese": 36, "english": 43, "other": 39, "total": 155}, "2025-08-14": {"math": 51, "chinese": 138, "english": 62, "other": 37, "total": 288},
+"2025-08-15": {"math": 29, "chinese": 124, "english": 59, "other": 30, "total": 242}, "2025-08-16": {"math": 57, "chinese": 65, "english": 100, "other": 37, "total": 259},
+"2025-08-17": {"math": 42, "chinese": 97, "english": 139, "other": 22, "total": 300}, "2025-08-18": {"math": 103, "chinese": 185, "english": 74, "other": 40, "total": 402},
+"2025-08-19": {"math": 104, "chinese": 98, "english": 87, "other": 35, "total": 324}, "2025-08-20": {"math": 179, "chinese": 366, "english": 155, "other": 63, "total": 763},
+"2025-08-21": {"math": 255, "chinese": 121, "english": 80, "other": 42, "total": 498}, "2025-08-22": {"math": 84, "chinese": 107, "english": 153, "other": 41, "total": 385},
+"2025-08-23": {"math": 108, "chinese": 150, "english": 133, "other": 58, "total": 449}, "2025-08-24": {"math": 181, "chinese": 269, "english": 225, "other": 103, "total": 778},
+"2025-08-25": {"math": 243, "chinese": 390, "english": 272, "other": 109, "total": 1014}, "2025-08-26": {"math": 402, "chinese": 607, "english": 352, "other": 285, "total": 1646},
+"2025-08-27": {"math": 271, "chinese": 993, "english": 335, "other": 160, "total": 1759}, "2025-08-28": {"math": 523, "chinese": 1099, "english": 2910, "other": 388, "total": 4920},
+"2025-08-29": {"math": 637, "chinese": 879, "english": 874, "other": 285, "total": 2675}, "2025-08-30": {"math": 594, "chinese": 790, "english": 782, "other": 268, "total": 2434},
+"2025-08-31": {"math": 1627, "chinese": 2549, "english": 2421, "other": 678, "total": 7275},
+"2025-09-01": {"math": 1064, "chinese": 1607, "english": 1751, "other": 494, "total": 4916}, "2025-09-02": {"math": 671, "chinese": 955, "english": 1138, "other": 299, "total": 3063},
+"2025-09-03": {"math": 1453, "chinese": 3672, "english": 1715, "other": 966, "total": 7806}, "2025-09-04": {"math": 829, "chinese": 1297, "english": 1399, "other": 484, "total": 4009},
+"2025-09-05": {"math": 590, "chinese": 861, "english": 1114, "other": 370, "total": 2935}, "2025-09-06": {"math": 677, "chinese": 1235, "english": 1578, "other": 356, "total": 3846},
+"2025-09-07": {"math": 675, "chinese": 1232, "english": 1577, "other": 356, "total": 3840}, "2025-09-08": {"math": 1082, "chinese": 1938, "english": 2463, "other": 710, "total": 6193},
+"2025-09-09": {"math": 1098, "chinese": 1743, "english": 1610, "other": 753, "total": 5204}, "2025-09-10": {"math": 1058, "chinese": 1536, "english": 1338, "other": 620, "total": 4552},
+"2025-09-11": {"math": 633, "chinese": 1326, "english": 1041, "other": 447, "total": 3447}, "2025-09-12": {"math": 1092, "chinese": 1527, "english": 1460, "other": 480, "total": 4559},
+"2025-09-13": {"math": 708, "chinese": 1026, "english": 1200, "other": 366, "total": 3300}, "2025-09-14": {"math": 845, "chinese": 1161, "english": 1638, "other": 360, "total": 4004},
+"2025-09-15": {"math": 699, "chinese": 959, "english": 1526, "other": 431, "total": 3615}, "2025-09-16": {"math": 444, "chinese": 699, "english": 825, "other": 303, "total": 2271},
+"2025-09-17": {"math": 377, "chinese": 677, "english": 510, "other": 179, "total": 1743}, "2025-09-18": {"math": 557, "chinese": 2225, "english": 1302, "other": 585, "total": 4669},
+"2025-09-19": {"math": 821, "chinese": 1386, "english": 1742, "other": 488, "total": 4437}, "2025-09-20": {"math": 660, "chinese": 1397, "english": 1265, "other": 383, "total": 3705},
+"2025-09-21": {"math": 566, "chinese": 1197, "english": 1022, "other": 282, "total": 3067}, "2025-09-22": {"math": 855, "chinese": 1212, "english": 1245, "other": 473, "total": 3785},
+"2025-09-23": {"math": 654, "chinese": 1236, "english": 1364, "other": 392, "total": 3646}, "2025-09-24": {"math": 660, "chinese": 1107, "english": 1400, "other": 392, "total": 3559},
+"2025-09-25": {"math": 839, "chinese": 1097, "english": 1295, "other": 498, "total": 3729}, "2025-09-26": {"math": 879, "chinese": 1859, "english": 1433, "other": 503, "total": 4674},
+"2025-09-27": {"math": 687, "chinese": 1799, "english": 1511, "other": 455, "total": 4452}, "2025-09-28": {"math": 920, "chinese": 3018, "english": 1550, "other": 618, "total": 6106},
+"2025-09-29": {"math": 911, "chinese": 1854, "english": 1242, "other": 597, "total": 4604}, "2025-09-30": {"math": 935, "chinese": 1170, "english": 1235, "other": 465, "total": 3805}
+};
+
+        // --- UIElement References ---
+        const calculateBtn = document.getElementById('calculateBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const outputCard = document.getElementById('outputCard');
+        const detailsPanel = document.getElementById('detailsPanel');
+        const detailsTableBody = document.getElementById('detailsTableBody');
+
+        // --- Statistical Helper Functions ---
+        function inv_normal_cdf(p) {
+            if (p <= 0 || p >= 1) return NaN;
+            if (p < 0.5) return -inv_normal_cdf(1 - p);
+            const a1=-39.69683028665376,a2=220.9460984245205,a3=-275.9285104469687,
+                  a4=138.357751867269,a5=-30.66479806614716,a6=2.506628277459239;
+            const b1=-54.47609879822406,b2=161.5858368580409,b3=-155.6989798598866,
+                  b4=66.80131188771972,b5=-13.28068155288572;
+            let q = p - 0.5; let r = q * q;
+            let num = (((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6)*q;
+            let den = (((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1);
+            return num / den;
+        }
+
+        function inv_t_cdf(p, df) {
+            if (p <= 0 || p >= 1 || df <= 0) return NaN;
+            const t = inv_normal_cdf(p);
+            if (df === Infinity) return t;
+            let g1 = (t**3 + t) / 4;
+            let g2 = (5*t**5 + 16*t**3 + 3*t) / 96;
+            let g3 = (3*t**7 + 19*t**5 + 17*t**3 - 15*t) / 384;
+            let g4 = (79*t**9 + 776*t**7 + 1482*t**5 - 1920*t**3 - 945*t) / 92160;
+            return t + (g1 / df) + (g2 / df**2) + (g3 / df**3) + (g4 / df**4);
+        }
+        
+        function calculateYatesCorrectedSampleSize(z_alpha, z_beta, p1, p2, maxIterations = 100, tolerance = 0.1) {
+            const effectSizeAbs = Math.abs(p2 - p1);
+            const var1 = p1 * (1 - p1);
+            const var2 = p2 * (1 - p2);
+            let n = ((z_alpha * Math.sqrt(2 * ((var1 + var2) / 2))) + (z_beta * Math.sqrt(var1 + var2)))**2 / (effectSizeAbs**2);
+            for (let i = 0; i < maxIterations; i++) {
+                const yatesEffectSize = effectSizeAbs - 1 / (2 * n);
+                if (yatesEffectSize <= 0) return n * 2;
+                const newN = ((z_alpha * Math.sqrt(2 * ((var1 + var2) / 2))) + (z_beta * Math.sqrt(var1 + var2)))**2 / (yatesEffectSize**2);
+                if (Math.abs(newN - n) < tolerance) return newN;
+                n = newN;
+            }
+            return n;
+        }
+        
+        function calculateWelchANOVASampleSize(z_alpha, z_beta, m1, m2, stdDev, stdDevRatio, numGroups) {
+            const welchFactor = 1 + (stdDevRatio**2 - 1) / numGroups;
+            const effectSize = Math.abs(m2 - m1);
+            const n0 = 2 * (stdDev**2) * ((z_alpha + z_beta)**2) / (effectSize**2);
+            return n0 * welchFactor;
+        }
+        
+        function calculateSampleSize() {
+            const getNumericInput = (id, min = -Infinity, max = Infinity, isInt = false) => {
+                const el = document.getElementById(id);
+                if (!el) return null;
+                const val = isInt ? parseInt(el.value) : parseFloat(el.value);
+                if (isNaN(val) || val < min || val > max) return null;
+                return val;
+            };
+
+            const numVariations = getNumericInput('num_variations', 2, Infinity, true);
+            const power = getNumericInput('power', 0.1, 99.9) / 100;
+            const alpha = getNumericInput('alpha', 0.1, 99.9) / 100;
+            
+            if ([numVariations, power, alpha].includes(null)) {
+                return { error: "错误：请检查'实验组数'、'统计功效'或'显著性水平'的输入是否为有效数字且在合理范围内。" };
+            }
+
+            const metricType = document.getElementById('metric_type').value;
+            const isConservative = document.querySelector('input[name="conservative"]:checked').value === 'yes';
+            const stdDevRatio = getNumericInput('std_dev_ratio', 1, 5) || 1.5;
+            
+            let samplePerGroup = 0;
+            let insights = [];
+            let testMethod = "";
+            let calculationMode = "标准模式";
+
+            const z_alpha_base = inv_normal_cdf(1 - alpha / 2);
+            const z_beta = inv_normal_cdf(power);
+
+            if (numVariations === 2) {
+                if (metricType === 'proportion') {
+                    testMethod = "双比例Z检验 (Z-test)";
+                    const baselineRate = getNumericInput('baseline_rate', 0, 100) / 100;
+                    const mde = getNumericInput('mde', 0) / 100;
+                    if (baselineRate === null || mde === null) return { error: "错误：基线值和MDE必须是有效的数字。" };
+                    
+                    const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
+                    const effectSizeAbs = mdeType === 'relative' ? baselineRate * mde : mde;
+                    const p1 = baselineRate; const p2 = p1 + effectSizeAbs;
+
+                    if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "比例类指标：基线或预期值需在0-100%之间，且MDE不能为0。" };
+                    const var1 = p1 * (1 - p1); const var2 = p2 * (1 - p2);
+                    
+                    if (isConservative) {
+                        calculationMode = "保守模式 (Yates校正)";
+                        samplePerGroup = calculateYatesCorrectedSampleSize(z_alpha_base, z_beta, p1, p2);
+                    } else {
+                        samplePerGroup = ((z_alpha_base * Math.sqrt(2 * ((var1 + var2) / 2))) + (z_beta * Math.sqrt(var1 + var2)))**2 / (effectSizeAbs**2);
+                    }
+                } else { // Mean type
+                    testMethod = "双样本t检验 (t-test)";
+                    const stdDev = getNumericInput('std_dev', 0.0001);
+                    const mde = getNumericInput('mde', 0.0001);
+                    if (stdDev === null || mde === null) return { error: "错误：均值类指标的基线值, 标准差和MDE必须是有效的数字。" };
+
+                    const n0 = 2 * (stdDev**2) * ((z_alpha_base + z_beta)**2) / (mde**2);
+                    const df = 2 * n0 - 2;
+                    const t_alpha = inv_t_cdf(1 - alpha / 2, df);
+                    const t_beta = inv_t_cdf(power, df);
+
+                    if (isConservative) {
+                        calculationMode = "保守模式 (HC4稳健方差)";
+                        samplePerGroup = 2 * (stdDev**2) * ((t_alpha + t_beta)**2) / (mde**2) * 1.15;
+                        insights.push('提示：已应用HC4稳健方差估计，适用于可能存在异常值的数据。');
+                    } else {
+                        calculationMode = "标准模式 (t分布)";
+                        samplePerGroup = 2 * (stdDev**2) * ((t_alpha + t_beta)**2) / (mde**2);
+                        insights.push('提示：均值类指标已采用更精确的t分布进行计算。');
+                    }
+                }
+            } else { // ANOVA for multiple groups
+                const numComparisons = numVariations - 1;
+                const bonferroni_alpha = alpha / numComparisons;
+                const z_alpha_corrected = inv_normal_cdf(1 - bonferroni_alpha / 2);
+
+                if (metricType === 'proportion') {
+                     const baselineRate = getNumericInput('baseline_rate', 0, 100) / 100;
+                     const mde = getNumericInput('mde', 0) / 100;
+                     if (baselineRate === null || mde === null) return { error: "错误：基线值和MDE必须是有效的数字。" };
+
+                     const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
+                     const effectSizeAbs = mdeType === 'relative' ? baselineRate * mde : mde;
+                     const p1 = baselineRate; const p2 = p1 + effectSizeAbs;
+
+                     if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "比例类指标：基线或预期值需在0-100%之间，且MDE不能为0。" };
+                     
+                     const varianceHomogeneity = Math.abs(p1 - p2) <= 0.15;
+                     if (!varianceHomogeneity) {
+                        testMethod = "Welch ANOVA (方差不齐)";
+                        insights.push('<span class="result-warning">方差齐性警告：组间差异较大，已自动采用Welch ANOVA计算。</span>');
+                     } else {
+                        testMethod = "方差分析 (ANOVA) - 近似计算";
+                     }
+
+                     if (isConservative) {
+                        calculationMode = "保守模式 (反正弦变换)";
+                        const y1 = Math.asin(Math.sqrt(p1)); const y2 = Math.asin(Math.sqrt(p2));
+                        const effectSizeTransformed = Math.abs(y2 - y1);
+                        const stdDevTransformed = 0.5;
+                        const n0_trans = 2 * (stdDevTransformed**2) * ((z_alpha_corrected + z_beta)**2) / (effectSizeTransformed**2);
+                        const df_trans = 2 * n0_trans - 2;
+                        const t_alpha_trans = inv_t_cdf(1 - bonferroni_alpha / 2, df_trans);
+                        const t_beta_trans = inv_t_cdf(power, df_trans);
+                        samplePerGroup = 2 * (stdDevTransformed**2) * ((t_alpha_trans + t_beta_trans)**2) / (effectSizeTransformed**2);
+                     } else {
+                        calculationMode = "标准模式 (Bonferroni校正)";
+                        const var1 = p1 * (1 - p1); const var2 = p2 * (1 - p2);
+                        if (!varianceHomogeneity) {
+                            samplePerGroup = calculateWelchANOVASampleSize(z_alpha_corrected, z_beta, p1, p2, Math.sqrt(var1), stdDevRatio, numVariations);
+                        } else {
+                            samplePerGroup = ((z_alpha_corrected * Math.sqrt(2 * ((var1 + var2) / 2))) + (z_beta * Math.sqrt(var1 + var2)))**2 / (effectSizeAbs**2);
+                        }
+                     }
+                } else { // Mean type
+                     const stdDev = getNumericInput('std_dev', 0.0001);
+                     const mde = getNumericInput('mde', 0.0001);
+                     if (stdDev === null || mde === null) return { error: "错误：均值类指标的基线值, 标准差和MDE必须是有效的数字。" };
+
+                     const n0 = 2 * (stdDev**2) * ((z_alpha_corrected + z_beta)**2) / (mde**2);
+                     const df = 2 * n0 - 2;
+                     const t_alpha_corrected = inv_t_cdf(1 - bonferroni_alpha / 2, df);
+                     const t_beta = inv_t_cdf(power, df);
+                     
+                     const varianceHomogeneity = stdDevRatio <= 1.5;
+                     if (!varianceHomogeneity) {
+                        testMethod = "Welch ANOVA (方差不齐)";
+                        insights.push('<span class="result-warning">方差齐性警告：组间标准差差异较大，已自动采用Welch ANOVA计算。</span>');
+                        samplePerGroup = calculateWelchANOVASampleSize(z_alpha_corrected, z_beta, 0, mde, stdDev, stdDevRatio, numVariations);
+                     } else {
+                        testMethod = "方差分析 (ANOVA) - 近似计算";
+                        if (isConservative) {
+                            calculationMode = "保守模式 (HC4稳健方差)";
+                            samplePerGroup = 2 * (stdDev**2) * ((t_alpha_corrected + t_beta)**2) / (mde**2) * 1.2;
+                            insights.push('提示：已应用HC4稳健方差估计，适用于可能存在异常值的数据。');
+                        } else {
+                            calculationMode = "标准模式 (t分布 + Bonferroni校正)";
+                            samplePerGroup = 2 * (stdDev**2) * ((t_alpha_corrected + t_beta)**2) / (mde**2);
+                        }
+                     }
+                }
+            }
+            
+            const numComparisonsTotal = numVariations * (numVariations - 1) / 2;
+            if (numVariations > 2) {
+                 const bonferroniAlphaFull = (alpha / numComparisonsTotal).toFixed(4);
+                 insights.push(`提示：多组实验的分析将采用更严格的显著性标准 (Bonferroni校正后p-value需 &lt; ${bonferroniAlphaFull})。`);
+            }
+
+            samplePerGroup = Math.ceil(samplePerGroup);
+            const totalSample = samplePerGroup * numVariations;
+
+            return { samplePerGroup, totalSample, testMethod, calculationMode, insights };
+        }
+
+
+        // --- Main Calculation Event Listener ---
+        calculateBtn.addEventListener('click', () => {
+            // Reset UI
+            errorMessage.style.display = 'none';
+            outputCard.style.display = 'none';
+            detailsPanel.style.display = 'none';
+            detailsTableBody.innerHTML = '';
+
+            // --- STEP 1: Calculate Required Sample Size ---
+            const sampleSizeResult = calculateSampleSize();
+            if (sampleSizeResult.error) {
+                errorMessage.textContent = sampleSizeResult.error;
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            let { samplePerGroup, totalSample, testMethod, calculationMode, insights } = sampleSizeResult;
+
+            // --- STEP 2: Get UI Inputs & Apply Filters ---
+            const expName = document.getElementById('expName').value;
+            const startDateStr = document.getElementById('startDate').value;
+            const selectedSubjects = Array.from(document.querySelectorAll('input[name="subject"]:checked')).map(cb => cb.value);
+            const isPrimaryOnly = document.querySelector('input[name="is_primary"]:checked').value === 'yes';
+            // ##### NEW CODE START #####
+            const exposureRate = parseFloat(document.getElementById('exposure_rate').value);
+            // ##### NEW CODE END #####
+
+
+            if (!expName || !startDateStr) {
+                errorMessage.textContent = '错误：实验名称和开始日期为必填项。';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            if (selectedSubjects.length === 0) {
+                 errorMessage.textContent = '错误：请至少选择一个观测学科。';
+                 errorMessage.style.display = 'block';
+                 return;
+            }
+            // ##### NEW CODE START #####
+            if (isNaN(exposureRate) || exposureRate <= 0 || exposureRate > 100) {
+                errorMessage.textContent = '错误：曝光率必须是 1 到 100 之间的有效数字。';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            // ##### NEW CODE END #####
+            if (totalSample <= 0 || !isFinite(totalSample)) {
+                 errorMessage.textContent = '无法计算所需样本量，请检查输入参数是否合理（如MDE不能为0）。';
+                 errorMessage.style.display = 'block';
+                 return;
+            }
+            
+            // Apply filters
+            // ##### MODIFIED LOGIC START #####
+            let sampleAfterPrimaryFilter = totalSample;
+            if (isPrimaryOnly) {
+                sampleAfterPrimaryFilter = Math.ceil(totalSample / 0.70);
+            }
+            
+            const finalSample = Math.ceil(sampleAfterPrimaryFilter / (exposureRate / 100));
+            // ##### MODIFIED LOGIC END #####
+
+
+            // --- STEP 3: Calculate Schedule for each selected subject ---
+            const startDate = new Date(startDateStr);
+            const dataEndDate = new Date("2025-09-30");
+            
+            if (startDate > dataEndDate) {
+                errorMessage.textContent = '错误：开始日期不能晚于 2025-09-30。';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            let resultsBySubject = [];
+            let allCalcsPossible = true;
+            
+            for (const subject of selectedSubjects) {
+                let accumulatedUsers = 0;
+                let days = 0;
+                let currentDate = new Date(startDate);
+                let endDate = null;
+                let dailyBreakdown = [];
+
+                while (accumulatedUsers < finalSample) {
+                    const dateKey = currentDate.toISOString().split('T')[0];
+                    const dayData = dailyData[dateKey];
+                    
+                    if (!dayData) {
+                        endDate = null; // Data ran out
+                        break;
+                    }
+
+                    let dailyIncrease = 0;
+                    switch (subject) {
+                        case 'all': dailyIncrease = dayData.total; break;
+                        case 'chinese': dailyIncrease = dayData.chinese; break;
+                        case 'english': dailyIncrease = dayData.english; break;
+                        case 'math': dailyIncrease = dayData.math; break;
+                        case 'ce': dailyIncrease = dayData.chinese + dayData.english; break;
+                    }
+                    
+                    accumulatedUsers += dailyIncrease;
+                    days++;
+
+                    dailyBreakdown.push({
+                        date: dateKey,
+                        increase: dailyIncrease,
+                        cumulative: accumulatedUsers,
+                        progress: (accumulatedUsers / finalSample * 100)
+                    });
+                    
+                    if (accumulatedUsers >= finalSample) {
+                        endDate = new Date(currentDate);
+                        break;
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                if (endDate) {
+                    resultsBySubject.push({ subject, days, endDate, dailyBreakdown, finalAccumulation: accumulatedUsers });
+                } else {
+                    allCalcsPossible = false;
+                    resultsBySubject.push({ subject, days: Infinity, endDate: null, dailyBreakdown, finalAccumulation: accumulatedUsers });
+                }
+            }
+            
+            // --- STEP 4: Determine Final Result and Display ---
+            if (resultsBySubject.length > 0 && allCalcsPossible) {
+                const finalResult = resultsBySubject.reduce((max, current) => (current.days > max.days) ? current : max, resultsBySubject[0]);
+
+                // Display summary card
+                document.getElementById('outputExpName').textContent = expName;
+                document.getElementById('outputSamplePerGroup').textContent = samplePerGroup.toLocaleString();
+                document.getElementById('outputTotalSample').textContent = finalSample.toLocaleString();
+                document.getElementById('outputEndDate').textContent = finalResult.endDate.toLocaleDateString('zh-CN');
+                document.getElementById('outputDuration').textContent = `${finalResult.days} 天`;
+                document.getElementById('outputTestMethod').textContent = testMethod;
+
+                if (finalResult.days > 60) {
+                     insights.push(`<span class="result-warning">周期过长警告：预估周期超过60天风险极高，强烈建议调整实验设计（如放宽MDE或扩大流量）。</span>`);
+                } else {
+                     insights.push('实验时长在合理范围内，可按此规划排期。');
+                }
+                
+                // ##### MODIFIED LOGIC START #####
+                if (isPrimaryOnly) {
+                    insights.push(`<b>小学灰度说明</b>: 已根据小学用户占比修正样本量 (原总样本 ${totalSample.toLocaleString()} -> ${sampleAfterPrimaryFilter.toLocaleString()})。`);
+                }
+                if (exposureRate < 100) {
+                    insights.push(`<b>曝光率说明</b>: 您设置了 ${exposureRate}% 的曝光率，因此所需覆盖的总用户量已从 ${sampleAfterPrimaryFilter.toLocaleString()} 修正为 ${finalSample.toLocaleString()}。`);
+                }
+                 // ##### MODIFIED LOGIC END #####
+
+                if (selectedSubjects.length > 1) {
+                    const subjectNames = {"all":"不区分", "chinese":"语文", "english":"英语", "math":"数学", "ce":"语文+英语"};
+                    insights.push(`<b>多学科计算说明</b>: 您选择了 ${selectedSubjects.length} 个观测学科。为确保所有学科均达到所需样本量，系统已分别计算，并采用耗时最长的【${subjectNames[finalResult.subject]}】学科（${finalResult.days}天）作为最终排期建议。`);
+                }
+                document.getElementById('result_insights').innerHTML = insights.join('<hr style="border-color: var(--border-color); margin: 10px 0;">');
+
+                outputCard.style.display = 'block';
+
+                // Display details table
+                finalResult.dailyBreakdown.forEach(day => {
+                    const row = document.createElement('tr');
+                    const progressPercent = Math.min(day.progress, 100).toFixed(2);
+                    row.innerHTML = `
+                        <td>${day.date}</td>
+                        <td>${day.increase.toLocaleString()}</td>
+                        <td>${day.cumulative.toLocaleString()}</td>
+                        <td>${progressPercent}%</td>
+                    `;
+                    detailsTableBody.appendChild(row);
+                });
+                detailsPanel.style.display = 'block';
+
+            } else {
+                 const failedSubject = resultsBySubject.find(r => r.days === Infinity);
+                 errorMessage.innerHTML = `计算失败：根据当前预测数据，【${failedSubject.subject}】学科到 2025-09-30 仍无法攒够所需的 <strong>${finalSample.toLocaleString()}</strong> 样本量。<br>届时该学科累计样本量仅为 <strong>${failedSubject.finalAccumulation.toLocaleString()}</strong>。`;
+                 errorMessage.style.display = 'block';
+            }
+        });
+
+        // --- UI Update Handlers ---
+        function setupEventListeners() {
+            const allInputs = document.querySelectorAll('input, select');
+            allInputs.forEach(input => {
+                input.addEventListener('change', handleUiChanges);
+            });
+        }
+        
+        function handleUiChanges() {
+            const metricType = document.getElementById('metric_type').value;
+            const numVariations = parseInt(document.getElementById('num_variations').value) || 2;
+            const isProportion = metricType === 'proportion';
+            const isMultipleGroups = numVariations > 2;
+            
+            document.getElementById('std_dev_group').classList.toggle('hidden', isProportion);
+            document.getElementById('mde_type_group').classList.toggle('hidden', !isProportion);
+            document.getElementById('std_dev_ratio_group').classList.toggle('hidden', !isMultipleGroups);
+            
+            const baselineLabel = document.getElementById('baseline_label');
+            const baselineUnit = document.getElementById('baseline_unit');
+            const mdeUnit = document.getElementById('mde_unit');
+            const mdeTypeRadios = document.querySelectorAll('input[name="mde_type"]');
+
+            if (isProportion) {
+                baselineLabel.textContent = "3. 基线值 (如: 激活率)";
+                baselineUnit.textContent = "%";
+                mdeUnit.textContent = "%";
+                document.getElementById('mde_absolute').nextElementSibling.textContent = '绝对值%';
+                mdeTypeRadios.forEach(r => r.disabled = false);
+            } else {
+                baselineLabel.textContent = "3. 基线值 (如: 人均时长)";
+                baselineUnit.textContent = "值";
+                mdeUnit.textContent = "值";
+                document.getElementById('mde_absolute').checked = true;
+                document.getElementById('mde_absolute').nextElementSibling.textContent = '绝对值';
+                mdeTypeRadios.forEach(r => r.disabled = true);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            handleUiChanges();
+        });
+
+    </script>
+</body>
+</html>
