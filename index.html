@@ -131,6 +131,7 @@
         .input-wrapper {
             display: flex;
             align-items: center;
+            gap: 5px; /* Added gap for range inputs */
         }
 
         input[type="text"], input[type="number"], select {
@@ -152,7 +153,21 @@
             border-left: none;
             border-radius: 0 6px 6px 0;
             white-space: nowrap;
+            height: 48px; /* Match input height */
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
         }
+
+        .input-wrapper input + .input-append {
+            border-left: 1px solid var(--border-color); /* Add border back for second input */
+        }
+        
+        .input-wrapper input:first-child + .input-append {
+            border-radius: 0;
+            border-left: none;
+        }
+
 
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
             outline: none;
@@ -343,7 +358,7 @@
                         <div class="fieldset-legend">第零步: 实验设定</div>
                         <div class="input-group">
                             <label for="expName">实验名称</label>
-                            <input type="text" id="expName" placeholder="例：新版首页UI优化实验" >
+                            <input type="text" id="expName" placeholder="例如：新版首页UI优化实验" >
                         </div>
                         <div class="input-group">
                            <label for="startDate">AB实验开始日期（after 20250801）</label>
@@ -369,12 +384,24 @@
                     <div class="fieldset">
                         <div class="fieldset-legend">第二步: 设定目标</div>
                         <div class="input-group">
-                            <label for="baseline_rate" id="baseline_label">3. 基线值</label>
+                            <label for="exposure_rate_min">曝光率区间 (Min/Max)</label>
                             <div class="input-wrapper">
-                                <input type="number" id="baseline_rate" value="10">
-                                <span id="baseline_unit" class="input-append">%</span>
+                                <input type="number" id="exposure_rate_min" value="95" min="1" max="100">
+                                <span class="input-append">%</span>
+                                <input type="number" id="exposure_rate_max" value="100" min="1" max="100">
+                                <span class="input-append">%</span>
                             </div>
-                            <p class="description">对照组(A组)当前指标的数值。</p>
+                            <p class="description">您的实验功能/策略，能触达到多少目标用户？</p>
+                        </div>
+                        <div class="input-group">
+                            <label for="baseline_rate_min" id="baseline_label">3. 基线值区间 (筛选曝光后)</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="baseline_rate_min" value="8">
+                                <span id="baseline_unit_min" class="input-append">%</span>
+                                <input type="number" id="baseline_rate_max" value="12">
+                                <span id="baseline_unit_max" class="input-append">%</span>
+                            </div>
+                            <p class="description">【已被曝光】的用户群体，在核心指标上的当前数值范围。</p>
                         </div>
                         <div class="input-group hidden" id="std_dev_group">
                             <label for="std_dev">3a. 指标标准差 (Standard Deviation)</label>
@@ -404,14 +431,6 @@
 
                     <div class="fieldset">
                         <div class="fieldset-legend">第三步: 筛选流量</div>
-                        <div class="input-group">
-                            <label for="exposure_rate">曝光率 (Exposure Rate)</label>
-                            <div class="input-wrapper">
-                                <input type="number" id="exposure_rate" value="100" min="1" max="100">
-                                <span class="input-append">%</span>
-                            </div>
-                            <p class="description">实验流量占每日可用样本量的百分比。100%表示全部可用。</p>
-                        </div>
                         <div class="input-group">
                             <label>观测学科 (可多选)</label>
                             <div class="checkbox-group">
@@ -484,11 +503,11 @@
                             <div class="output-item-value" id="outputTotalSample"></div>
                         </div>
                         <div class="output-item">
-                            <div class="output-item-label">预计实验结束日期</div>
+                            <div class="output-item-label">预计实验结束日期 (90%置信区间)</div>
                             <div class="output-item-value" id="outputEndDate"></div>
                         </div>
                         <div class="output-item">
-                            <div class="output-item-label">共需实验天数</div>
+                            <div class="output-item-label">共需实验天数 (90%置信区间)</div>
                             <div class="output-item-value" id="outputDuration"></div>
                         </div>
                         <div class="output-item full-width">
@@ -500,7 +519,7 @@
                 </div>
 
                 <div class="card details-panel" id="detailsPanel">
-                    <h3>排期计算明细</h3>
+                    <h3>排期计算明细 (基于均值预估)</h3>
                     <div class="table-container">
                         <table>
                             <thead>
@@ -609,47 +628,26 @@
             return n0 * welchFactor;
         }
         
-        function calculateSampleSize() {
-            const getNumericInput = (id, min = -Infinity, max = Infinity, isInt = false) => {
-                const el = document.getElementById(id);
-                if (!el) return null;
-                const val = isInt ? parseInt(el.value) : parseFloat(el.value);
-                if (isNaN(val) || val < min || val > max) return null;
-                return val;
-            };
+        // This function calculates sample size based on a specific baseline value.
+        function calculateSampleSize(params) {
+            const { numVariations, power, alpha, metricType, isConservative, stdDevRatio, baselineRateValue, mdeValue, mdeType, stdDevValue } = params;
 
-            const numVariations = getNumericInput('num_variations', 2, Infinity, true);
-            const power = getNumericInput('power', 0.1, 99.9) / 100;
-            const alpha = getNumericInput('alpha', 0.1, 99.9) / 100;
-            
-            if ([numVariations, power, alpha].includes(null)) {
-                return { error: "错误：请检查'实验组数'、'统计功效'或'显著性水平'的输入是否为有效数字且在合理范围内。" };
-            }
-
-            const metricType = document.getElementById('metric_type').value;
-            const isConservative = document.querySelector('input[name="conservative"]:checked').value === 'yes';
-            const stdDevRatio = getNumericInput('std_dev_ratio', 1, 5) || 1.5;
+            const z_alpha_base = inv_normal_cdf(1 - alpha / 2);
+            const z_beta = inv_normal_cdf(power);
             
             let samplePerGroup = 0;
             let insights = [];
             let testMethod = "";
             let calculationMode = "标准模式";
 
-            const z_alpha_base = inv_normal_cdf(1 - alpha / 2);
-            const z_beta = inv_normal_cdf(power);
-
             if (numVariations === 2) {
                 if (metricType === 'proportion') {
                     testMethod = "双比例Z检验 (Z-test)";
-                    const baselineRate = getNumericInput('baseline_rate', 0, 100) / 100;
-                    const mde = getNumericInput('mde', 0) / 100;
-                    if (baselineRate === null || mde === null) return { error: "错误：基线值和MDE必须是有效的数字。" };
-                    
-                    const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
-                    const effectSizeAbs = mdeType === 'relative' ? baselineRate * mde : mde;
-                    const p1 = baselineRate; const p2 = p1 + effectSizeAbs;
+                    const p1 = baselineRateValue;
+                    const effectSizeAbs = mdeType === 'relative' ? p1 * mdeValue : mdeValue;
+                    const p2 = p1 + effectSizeAbs;
 
-                    if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "比例类指标：基线或预期值需在0-100%之间，且MDE不能为0。" };
+                    if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "..." };
                     const var1 = p1 * (1 - p1); const var2 = p2 * (1 - p2);
                     
                     if (isConservative) {
@@ -660,10 +658,9 @@
                     }
                 } else { // Mean type
                     testMethod = "双样本t检验 (t-test)";
-                    const stdDev = getNumericInput('std_dev', 0.0001);
-                    const mde = getNumericInput('mde', 0.0001);
-                    if (stdDev === null || mde === null) return { error: "错误：均值类指标的基线值, 标准差和MDE必须是有效的数字。" };
-
+                    const stdDev = stdDevValue;
+                    const mde = mdeValue;
+                    
                     const n0 = 2 * (stdDev**2) * ((z_alpha_base + z_beta)**2) / (mde**2);
                     const df = 2 * n0 - 2;
                     const t_alpha = inv_t_cdf(1 - alpha / 2, df);
@@ -672,11 +669,9 @@
                     if (isConservative) {
                         calculationMode = "保守模式 (HC4稳健方差)";
                         samplePerGroup = 2 * (stdDev**2) * ((t_alpha + t_beta)**2) / (mde**2) * 1.15;
-                        insights.push('提示：已应用HC4稳健方差估计，适用于可能存在异常值的数据。');
                     } else {
                         calculationMode = "标准模式 (t分布)";
                         samplePerGroup = 2 * (stdDev**2) * ((t_alpha + t_beta)**2) / (mde**2);
-                        insights.push('提示：均值类指标已采用更精确的t分布进行计算。');
                     }
                 }
             } else { // ANOVA for multiple groups
@@ -685,23 +680,15 @@
                 const z_alpha_corrected = inv_normal_cdf(1 - bonferroni_alpha / 2);
 
                 if (metricType === 'proportion') {
-                     const baselineRate = getNumericInput('baseline_rate', 0, 100) / 100;
-                     const mde = getNumericInput('mde', 0) / 100;
-                     if (baselineRate === null || mde === null) return { error: "错误：基线值和MDE必须是有效的数字。" };
+                     const p1 = baselineRateValue;
+                     const effectSizeAbs = mdeType === 'relative' ? p1 * mdeValue : mdeValue;
+                     const p2 = p1 + effectSizeAbs;
 
-                     const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
-                     const effectSizeAbs = mdeType === 'relative' ? baselineRate * mde : mde;
-                     const p1 = baselineRate; const p2 = p1 + effectSizeAbs;
-
-                     if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "比例类指标：基线或预期值需在0-100%之间，且MDE不能为0。" };
+                     if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "..." };
                      
                      const varianceHomogeneity = Math.abs(p1 - p2) <= 0.15;
-                     if (!varianceHomogeneity) {
-                        testMethod = "Welch ANOVA (方差不齐)";
-                        insights.push('<span class="result-warning">方差齐性警告：组间差异较大，已自动采用Welch ANOVA计算。</span>');
-                     } else {
-                        testMethod = "方差分析 (ANOVA) - 近似计算";
-                     }
+                     if (!varianceHomogeneity) { testMethod = "Welch ANOVA (方差不齐)"; } 
+                     else { testMethod = "方差分析 (ANOVA) - 近似计算"; }
 
                      if (isConservative) {
                         calculationMode = "保守模式 (反正弦变换)";
@@ -723,9 +710,8 @@
                         }
                      }
                 } else { // Mean type
-                     const stdDev = getNumericInput('std_dev', 0.0001);
-                     const mde = getNumericInput('mde', 0.0001);
-                     if (stdDev === null || mde === null) return { error: "错误：均值类指标的基线值, 标准差和MDE必须是有效的数字。" };
+                     const stdDev = stdDevValue;
+                     const mde = mdeValue;
 
                      const n0 = 2 * (stdDev**2) * ((z_alpha_corrected + z_beta)**2) / (mde**2);
                      const df = 2 * n0 - 2;
@@ -735,26 +721,18 @@
                      const varianceHomogeneity = stdDevRatio <= 1.5;
                      if (!varianceHomogeneity) {
                         testMethod = "Welch ANOVA (方差不齐)";
-                        insights.push('<span class="result-warning">方差齐性警告：组间标准差差异较大，已自动采用Welch ANOVA计算。</span>');
                         samplePerGroup = calculateWelchANOVASampleSize(z_alpha_corrected, z_beta, 0, mde, stdDev, stdDevRatio, numVariations);
                      } else {
                         testMethod = "方差分析 (ANOVA) - 近似计算";
                         if (isConservative) {
                             calculationMode = "保守模式 (HC4稳健方差)";
                             samplePerGroup = 2 * (stdDev**2) * ((t_alpha_corrected + t_beta)**2) / (mde**2) * 1.2;
-                            insights.push('提示：已应用HC4稳健方差估计，适用于可能存在异常值的数据。');
                         } else {
                             calculationMode = "标准模式 (t分布 + Bonferroni校正)";
                             samplePerGroup = 2 * (stdDev**2) * ((t_alpha_corrected + t_beta)**2) / (mde**2);
                         }
                      }
                 }
-            }
-            
-            const numComparisonsTotal = numVariations * (numVariations - 1) / 2;
-            if (numVariations > 2) {
-                 const bonferroniAlphaFull = (alpha / numComparisonsTotal).toFixed(4);
-                 insights.push(`提示：多组实验的分析将采用更严格的显著性标准 (Bonferroni校正后p-value需 &lt; ${bonferroniAlphaFull})。`);
             }
 
             samplePerGroup = Math.ceil(samplePerGroup);
@@ -763,82 +741,41 @@
             return { samplePerGroup, totalSample, testMethod, calculationMode, insights };
         }
 
-
-        // --- Main Calculation Event Listener ---
-        calculateBtn.addEventListener('click', () => {
-            // Reset UI
-            errorMessage.style.display = 'none';
-            outputCard.style.display = 'none';
-            detailsPanel.style.display = 'none';
-            detailsTableBody.innerHTML = '';
-
+        // This function runs a single scenario from start to finish
+        function runSingleCalculation(config) {
+            const { baselineRateValue, exposureRateValue, ...staticConfig } = config;
+            
             // --- STEP 1: Calculate Required Sample Size ---
-            const sampleSizeResult = calculateSampleSize();
-            if (sampleSizeResult.error) {
-                errorMessage.textContent = sampleSizeResult.error;
-                errorMessage.style.display = 'block';
-                return;
+            const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
+            const sampleSizeParams = {
+                ...staticConfig,
+                baselineRateValue: staticConfig.metricType === 'proportion' ? baselineRateValue / 100 : baselineRateValue,
+                mdeValue: staticConfig.metricType === 'proportion' ? staticConfig.mdeValue / 100 : staticConfig.mdeValue,
+                mdeType
+            };
+            const sampleSizeResult = calculateSampleSize(sampleSizeParams);
+            if (sampleSizeResult.error || !isFinite(sampleSizeResult.totalSample) || sampleSizeResult.totalSample <= 0) {
+                return { error: "无法计算样本量" };
             }
             
-            let { samplePerGroup, totalSample, testMethod, calculationMode, insights } = sampleSizeResult;
+            let { samplePerGroup, totalSample, testMethod } = sampleSizeResult;
 
-            // --- STEP 2: Get UI Inputs & Apply Filters ---
-            const expName = document.getElementById('expName').value;
-            const startDateStr = document.getElementById('startDate').value;
-            const selectedSubjects = Array.from(document.querySelectorAll('input[name="subject"]:checked')).map(cb => cb.value);
-            const isPrimaryOnly = document.querySelector('input[name="is_primary"]:checked').value === 'yes';
-            // ##### NEW CODE START #####
-            const exposureRate = parseFloat(document.getElementById('exposure_rate').value);
-            // ##### NEW CODE END #####
+            // --- STEP 2: Apply Filters ---
+            const { isPrimaryOnly, selectedSubjects, startDateStr } = staticConfig;
 
-
-            if (!expName || !startDateStr) {
-                errorMessage.textContent = '错误：实验名称和开始日期为必填项。';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            if (selectedSubjects.length === 0) {
-                 errorMessage.textContent = '错误：请至少选择一个观测学科。';
-                 errorMessage.style.display = 'block';
-                 return;
-            }
-            // ##### NEW CODE START #####
-            if (isNaN(exposureRate) || exposureRate <= 0 || exposureRate > 100) {
-                errorMessage.textContent = '错误：曝光率必须是 1 到 100 之间的有效数字。';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            // ##### NEW CODE END #####
-            if (totalSample <= 0 || !isFinite(totalSample)) {
-                 errorMessage.textContent = '无法计算所需样本量，请检查输入参数是否合理（如MDE不能为0）。';
-                 errorMessage.style.display = 'block';
-                 return;
-            }
-            
-            // Apply filters
-            // ##### MODIFIED LOGIC START #####
             let sampleAfterPrimaryFilter = totalSample;
             if (isPrimaryOnly) {
                 sampleAfterPrimaryFilter = Math.ceil(totalSample / 0.70);
             }
             
-            const finalSample = Math.ceil(sampleAfterPrimaryFilter / (exposureRate / 100));
-            // ##### MODIFIED LOGIC END #####
+            // LOGIC FIX: The final sample required is NOT affected by exposure rate. Exposure rate affects the *rate of accumulation*.
+            const finalSample = sampleAfterPrimaryFilter;
 
-
-            // --- STEP 3: Calculate Schedule for each selected subject ---
+            // --- STEP 3: Calculate Schedule ---
             const startDate = new Date(startDateStr);
-            const dataEndDate = new Date("2025-09-30");
-            
-            if (startDate > dataEndDate) {
-                errorMessage.textContent = '错误：开始日期不能晚于 2025-09-30。';
-                errorMessage.style.display = 'block';
-                return;
-            }
-
             let resultsBySubject = [];
             let allCalcsPossible = true;
-            
+
             for (const subject of selectedSubjects) {
                 let accumulatedUsers = 0;
                 let days = 0;
@@ -849,11 +786,7 @@
                 while (accumulatedUsers < finalSample) {
                     const dateKey = currentDate.toISOString().split('T')[0];
                     const dayData = dailyData[dateKey];
-                    
-                    if (!dayData) {
-                        endDate = null; // Data ran out
-                        break;
-                    }
+                    if (!dayData) { endDate = null; break; }
 
                     let dailyIncrease = 0;
                     switch (subject) {
@@ -861,15 +794,15 @@
                         case 'chinese': dailyIncrease = dayData.chinese; break;
                         case 'english': dailyIncrease = dayData.english; break;
                         case 'math': dailyIncrease = dayData.math; break;
-                        case 'ce': dailyIncrease = dayData.chinese + dayData.english; break;
                     }
                     
-                    accumulatedUsers += dailyIncrease;
+                    // LOGIC FIX: Apply exposure rate to daily traffic, not total sample.
+                    accumulatedUsers += dailyIncrease * (exposureRateValue / 100);
                     days++;
 
                     dailyBreakdown.push({
                         date: dateKey,
-                        increase: dailyIncrease,
+                        increase: dailyIncrease * (exposureRateValue / 100),
                         cumulative: accumulatedUsers,
                         progress: (accumulatedUsers / finalSample * 100)
                     });
@@ -878,7 +811,6 @@
                         endDate = new Date(currentDate);
                         break;
                     }
-                    
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
                 
@@ -890,60 +822,153 @@
                 }
             }
             
-            // --- STEP 4: Determine Final Result and Display ---
             if (resultsBySubject.length > 0 && allCalcsPossible) {
                 const finalResult = resultsBySubject.reduce((max, current) => (current.days > max.days) ? current : max, resultsBySubject[0]);
-
-                // Display summary card
-                document.getElementById('outputExpName').textContent = expName;
-                document.getElementById('outputSamplePerGroup').textContent = samplePerGroup.toLocaleString();
-                document.getElementById('outputTotalSample').textContent = finalSample.toLocaleString();
-                document.getElementById('outputEndDate').textContent = finalResult.endDate.toLocaleDateString('zh-CN');
-                document.getElementById('outputDuration').textContent = `${finalResult.days} 天`;
-                document.getElementById('outputTestMethod').textContent = testMethod;
-
-                if (finalResult.days > 60) {
-                     insights.push(`<span class="result-warning">周期过长警告：预估周期超过60天风险极高，强烈建议调整实验设计（如放宽MDE或扩大流量）。</span>`);
-                } else {
-                     insights.push('实验时长在合理范围内，可按此规划排期。');
-                }
-                
-                // ##### MODIFIED LOGIC START #####
-                if (isPrimaryOnly) {
-                    insights.push(`<b>小学灰度说明</b>: 已根据小学用户占比修正样本量 (原总样本 ${totalSample.toLocaleString()} -> ${sampleAfterPrimaryFilter.toLocaleString()})。`);
-                }
-                if (exposureRate < 100) {
-                    insights.push(`<b>曝光率说明</b>: 您设置了 ${exposureRate}% 的曝光率，因此所需覆盖的总用户量已从 ${sampleAfterPrimaryFilter.toLocaleString()} 修正为 ${finalSample.toLocaleString()}。`);
-                }
-                 // ##### MODIFIED LOGIC END #####
-
-                if (selectedSubjects.length > 1) {
-                    const subjectNames = {"all":"不区分", "chinese":"语文", "english":"英语", "math":"数学", "ce":"语文+英语"};
-                    insights.push(`<b>多学科计算说明</b>: 您选择了 ${selectedSubjects.length} 个观测学科。为确保所有学科均达到所需样本量，系统已分别计算，并采用耗时最长的【${subjectNames[finalResult.subject]}】学科（${finalResult.days}天）作为最终排期建议。`);
-                }
-                document.getElementById('result_insights').innerHTML = insights.join('<hr style="border-color: var(--border-color); margin: 10px 0;">');
-
-                outputCard.style.display = 'block';
-
-                // Display details table
-                finalResult.dailyBreakdown.forEach(day => {
-                    const row = document.createElement('tr');
-                    const progressPercent = Math.min(day.progress, 100).toFixed(2);
-                    row.innerHTML = `
-                        <td>${day.date}</td>
-                        <td>${day.increase.toLocaleString()}</td>
-                        <td>${day.cumulative.toLocaleString()}</td>
-                        <td>${progressPercent}%</td>
-                    `;
-                    detailsTableBody.appendChild(row);
-                });
-                detailsPanel.style.display = 'block';
-
+                return { ...finalResult, samplePerGroup, totalSample, finalSample, testMethod };
             } else {
-                 const failedSubject = resultsBySubject.find(r => r.days === Infinity);
-                 errorMessage.innerHTML = `计算失败：根据当前预测数据，【${failedSubject.subject}】学科到 2025-09-30 仍无法攒够所需的 <strong>${finalSample.toLocaleString()}</strong> 样本量。<br>届时该学科累计样本量仅为 <strong>${failedSubject.finalAccumulation.toLocaleString()}</strong>。`;
-                 errorMessage.style.display = 'block';
+                return { error: `无法为学科 ${selectedSubjects.join(', ')} 攒够样本` };
             }
+        }
+
+        // --- Main Calculation Event Listener (Now a Simulation Runner) ---
+        calculateBtn.addEventListener('click', () => {
+            // Reset UI
+            errorMessage.style.display = 'none';
+            outputCard.style.display = 'none';
+            detailsPanel.style.display = 'none';
+            detailsTableBody.innerHTML = '';
+            
+            // --- Get all static inputs from DOM ---
+            const getNumericInput = (id) => parseFloat(document.getElementById(id).value);
+            
+            const expName = document.getElementById('expName').value;
+            const startDateStr = document.getElementById('startDate').value;
+            if (!expName || !startDateStr) {
+                errorMessage.textContent = '错误：实验名称和开始日期为必填项。';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const baselineMin = getNumericInput('baseline_rate_min');
+            const baselineMax = getNumericInput('baseline_rate_max');
+            const exposureMin = getNumericInput('exposure_rate_min');
+            const exposureMax = getNumericInput('exposure_rate_max');
+
+            if (isNaN(baselineMin) || isNaN(baselineMax) || isNaN(exposureMin) || isNaN(exposureMax) || baselineMin > baselineMax || exposureMin > exposureMax) {
+                errorMessage.textContent = '错误：请输入有效的基线值和曝光率区间 (最小值需小于等于最大值)。';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const staticConfig = {
+                numVariations: getNumericInput('num_variations'),
+                power: getNumericInput('power') / 100,
+                alpha: getNumericInput('alpha') / 100,
+                metricType: document.getElementById('metric_type').value,
+                isConservative: document.querySelector('input[name="conservative"]:checked').value === 'yes',
+                stdDevRatio: getNumericInput('std_dev_ratio'),
+                stdDevValue: getNumericInput('std_dev'),
+                mdeValue: getNumericInput('mde'),
+                isPrimaryOnly: document.querySelector('input[name="is_primary"]:checked').value === 'yes',
+                selectedSubjects: Array.from(document.querySelectorAll('input[name="subject"]:checked')).map(cb => cb.value),
+                startDateStr: startDateStr
+            };
+            
+            if (staticConfig.selectedSubjects.length === 0) {
+                 errorMessage.textContent = '错误：请至少选择一个观测学科。';
+                 errorMessage.style.display = 'block';
+                 return;
+            }
+
+            // --- Run Monte Carlo Simulation ---
+            const simulations = 10000;
+            let durationResults = [];
+
+            for (let i = 0; i < simulations; i++) {
+                const randomBaseline = baselineMin + Math.random() * (baselineMax - baselineMin);
+                const randomExposure = exposureMin + Math.random() * (exposureMax - exposureMin);
+
+                const singleRunResult = runSingleCalculation({
+                    ...staticConfig,
+                    baselineRateValue: randomBaseline,
+                    exposureRateValue: randomExposure
+                });
+
+                if (!singleRunResult.error) {
+                    durationResults.push(singleRunResult.days);
+                }
+            }
+
+            if (durationResults.length < simulations * 0.5) { // If more than half the simulations fail
+                errorMessage.innerHTML = `计算失败：在超过50%的模拟场景下，无法在 2025-09-30 前攒够所需样本量。<br>请检查输入范围，特别是基线值和MDE是否过低。`;
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // --- Analyze simulation results ---
+            durationResults.sort((a, b) => a - b);
+            const lowerBoundIndex = Math.floor(durationResults.length * 0.05);
+            const upperBoundIndex = Math.ceil(durationResults.length * 0.95) - 1;
+            const minDays = durationResults[lowerBoundIndex];
+            const maxDays = durationResults[upperBoundIndex];
+
+            // --- Run one more time with average values for representative details ---
+            const avgBaseline = (baselineMin + baselineMax) / 2;
+            const avgExposure = (exposureMin + exposureMax) / 2;
+            const representativeRun = runSingleCalculation({
+                ...staticConfig,
+                baselineRateValue: avgBaseline,
+                exposureRateValue: avgExposure
+            });
+            
+            if(representativeRun.error){
+                 errorMessage.innerHTML = `无法生成代表性排期，请检查输入。`;
+                 errorMessage.style.display = 'block';
+                 return;
+            }
+
+            // --- Display results ---
+            const startDate = new Date(startDateStr);
+            const minEndDate = new Date(startDate);
+            minEndDate.setDate(startDate.getDate() + minDays -1);
+            const maxEndDate = new Date(startDate);
+            maxEndDate.setDate(startDate.getDate() + maxDays-1);
+            
+            document.getElementById('outputExpName').textContent = expName;
+            document.getElementById('outputSamplePerGroup').textContent = representativeRun.samplePerGroup.toLocaleString();
+            document.getElementById('outputTotalSample').textContent = representativeRun.finalSample.toLocaleString();
+            document.getElementById('outputEndDate').textContent = `${minEndDate.toLocaleDateString('zh-CN')} ~ ${maxEndDate.toLocaleDateString('zh-CN')}`;
+            document.getElementById('outputDuration').textContent = `${minDays} ~ ${maxDays} 天`;
+            document.getElementById('outputTestMethod').textContent = representativeRun.testMethod;
+
+            let insights = [];
+            insights.push(`<b>区间预测说明</b>: 基于10000次蒙特卡洛模拟，预测实验周期有90%的概率落在 <b>${minDays} ~ ${maxDays} 天</b> 之间。`);
+
+            if (maxDays > 60) {
+                 insights.push(`<span class="result-warning">周期过长警告：预估周期上限超过60天风险极高，强烈建议调整实验设计（如放宽MDE或扩大流量）。</span>`);
+            } else {
+                 insights.push('实验时长在合理范围内，可按此规划排期。');
+            }
+            if (staticConfig.isPrimaryOnly) {
+                insights.push(`<b>小学灰度说明</b>: 已根据小学用户占比(70%)修正所需总样本量。`);
+            }
+            
+            document.getElementById('result_insights').innerHTML = insights.join('<hr style="border-color: var(--border-color); margin: 10px 0;">');
+            outputCard.style.display = 'block';
+
+            // Display details table from the representative run
+            representativeRun.dailyBreakdown.forEach(day => {
+                const row = document.createElement('tr');
+                const progressPercent = Math.min(day.progress, 100).toFixed(2);
+                row.innerHTML = `
+                    <td>${day.date}</td>
+                    <td>${Math.round(day.increase).toLocaleString()}</td>
+                    <td>${Math.round(day.cumulative).toLocaleString()}</td>
+                    <td>${progressPercent}%</td>
+                `;
+                detailsTableBody.appendChild(row);
+            });
+            detailsPanel.style.display = 'block';
         });
 
         // --- UI Update Handlers ---
@@ -965,19 +990,22 @@
             document.getElementById('std_dev_ratio_group').classList.toggle('hidden', !isMultipleGroups);
             
             const baselineLabel = document.getElementById('baseline_label');
-            const baselineUnit = document.getElementById('baseline_unit');
+            const baselineUnitMin = document.getElementById('baseline_unit_min');
+            const baselineUnitMax = document.getElementById('baseline_unit_max');
             const mdeUnit = document.getElementById('mde_unit');
             const mdeTypeRadios = document.querySelectorAll('input[name="mde_type"]');
 
             if (isProportion) {
-                baselineLabel.textContent = "3. 基线值 (如: 激活率)";
-                baselineUnit.textContent = "%";
+                baselineLabel.textContent = "3. 基线值区间 (筛选曝光后)";
+                baselineUnitMin.textContent = "%";
+                baselineUnitMax.textContent = "%";
                 mdeUnit.textContent = "%";
                 document.getElementById('mde_absolute').nextElementSibling.textContent = '绝对值%';
                 mdeTypeRadios.forEach(r => r.disabled = false);
             } else {
-                baselineLabel.textContent = "3. 基线值 (如: 人均时长)";
-                baselineUnit.textContent = "值";
+                baselineLabel.textContent = "3. 基线值区间 (如: 人均时长)";
+                baselineUnitMin.textContent = "值";
+                baselineUnitMax.textContent = "值";
                 mdeUnit.textContent = "值";
                 document.getElementById('mde_absolute').checked = true;
                 document.getElementById('mde_absolute').nextElementSibling.textContent = '绝对值';
