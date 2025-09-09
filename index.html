@@ -127,6 +127,11 @@
             position: absolute;
             top: -14px;
         }
+        
+        summary::-webkit-details-marker,
+        summary::marker {
+            display: none;
+        }
 
         .input-wrapper {
             display: flex;
@@ -386,9 +391,9 @@
                         <div class="input-group">
                             <label for="exposure_rate_min">曝光率区间 (Min/Max)</label>
                             <div class="input-wrapper">
-                                <input type="number" id="exposure_rate_min" value="95" min="1" max="100">
+                                <input type="number" id="exposure_rate_min" value="20" min="1" max="100">
                                 <span class="input-append">%</span>
-                                <input type="number" id="exposure_rate_max" value="100" min="1" max="100">
+                                <input type="number" id="exposure_rate_max" value="40" min="1" max="100">
                                 <span class="input-append">%</span>
                             </div>
                             <p class="description">您的实验功能/策略，能触达到多少目标用户？</p>
@@ -396,9 +401,9 @@
                         <div class="input-group">
                             <label for="baseline_rate_min" id="baseline_label">3. 基线值区间 (筛选曝光后)</label>
                             <div class="input-wrapper">
-                                <input type="number" id="baseline_rate_min" value="8">
+                                <input type="number" id="baseline_rate_min" value="10">
                                 <span id="baseline_unit_min" class="input-append">%</span>
-                                <input type="number" id="baseline_rate_max" value="12">
+                                <input type="number" id="baseline_rate_max" value="20">
                                 <span id="baseline_unit_max" class="input-append">%</span>
                             </div>
                             <p class="description">【已被曝光】的用户群体，在核心指标上的当前数值范围。</p>
@@ -432,11 +437,11 @@
                     <div class="fieldset">
                         <div class="fieldset-legend">第三步: 筛选流量</div>
                         <div class="input-group">
-                            <label>观测学科 (可多选)</label>
+                            <label>观测学科 (多选，最终结果取周期较长者)</label>
                             <div class="checkbox-group">
                                 <input type="checkbox" id="sub_all" name="subject" value="all"> <label for="sub_all">不区分</label>
-                                <input type="checkbox" id="sub_chinese" name="subject" value="chinese" checked> <label for="sub_chinese">语文</label>
-                                <input type="checkbox" id="sub_english" name="subject" value="english"> <label for="sub_english">英语</label>
+                                <input type="checkbox" id="sub_chinese" name="subject" value="chinese" > <label for="sub_chinese">语文</label>
+                                <input type="checkbox" id="sub_english" name="subject" value="english"checked> <label for="sub_english">英语</label>
                                 <input type="checkbox" id="sub_math" name="subject" value="math"> <label for="sub_math">数学</label>
                             </div>
                              <p class="description">根据科目筛选，会影响每日可用样本量，从而影响实验周期。</p>
@@ -457,8 +462,8 @@
                         </div>
                     </div>
                     
-                    <div class="fieldset">
-                        <div class="fieldset-legend">第五步: 高级选项（默认不需要改动）</div>
+                    <details class="fieldset">
+                        <summary class="fieldset-legend" style="cursor: pointer;">第五步: 高级选项 (点击展开/折叠)</summary>
                         <div class="input-group">
                             <label for="power">统计功效 (Power, %)</label>
                             <input type="number" id="power" value="80" min="1" max="99.9">
@@ -479,7 +484,7 @@
                                 采用更严谨的校正方法或稳健方差估计，所需样本量会更高。
                             </p>
                         </div>
-                    </div>
+                    </details>
                     
                     <button id="calculateBtn">开始统一测算</button>
                     <div id="errorMessage" class="error-message"></div>
@@ -495,19 +500,23 @@
                             <div class="output-item-value" id="outputExpName"></div>
                         </div>
                         <div class="output-item">
-                            <div class="output-item-label">每组所需最小样本</div>
+                            <div class="output-item-label">每组所需最小样本 (均值)</div>
                             <div class="output-item-value" id="outputSamplePerGroup"></div>
                         </div>
                         <div class="output-item">
-                            <div class="output-item-label">实验所需总样本 (修正后)</div>
+                            <div class="output-item-label">实验所需总样本 (均值)</div>
                             <div class="output-item-value" id="outputTotalSample"></div>
                         </div>
                         <div class="output-item">
-                            <div class="output-item-label">预计实验结束日期 (90%置信区间)</div>
+                            <div class="output-item-label">预计实验结束日期</div>
                             <div class="output-item-value" id="outputEndDate"></div>
                         </div>
                         <div class="output-item">
-                            <div class="output-item-label">共需实验天数 (90%置信区间)</div>
+                            <div class="output-item-label">预估平均天数</div>
+                            <div class="output-item-value" id="outputAvgDuration"></div>
+                        </div>
+                        <div class="output-item">
+                            <div class="output-item-label">共需实验天数 (70%概率区间)</div>
                             <div class="output-item-value" id="outputDuration"></div>
                         </div>
                         <div class="output-item full-width">
@@ -519,7 +528,7 @@
                 </div>
 
                 <div class="card details-panel" id="detailsPanel">
-                    <h3>排期计算明细 (基于均值预估)</h3>
+                    <h3>排期计算明细 (基于样本量均值)</h3>
                     <div class="table-container">
                         <table>
                             <thead>
@@ -628,7 +637,6 @@
             return n0 * welchFactor;
         }
         
-        // This function calculates sample size based on a specific baseline value.
         function calculateSampleSize(params) {
             const { numVariations, power, alpha, metricType, isConservative, stdDevRatio, baselineRateValue, mdeValue, mdeType, stdDevValue } = params;
 
@@ -636,9 +644,7 @@
             const z_beta = inv_normal_cdf(power);
             
             let samplePerGroup = 0;
-            let insights = [];
             let testMethod = "";
-            let calculationMode = "标准模式";
 
             if (numVariations === 2) {
                 if (metricType === 'proportion') {
@@ -646,31 +652,23 @@
                     const p1 = baselineRateValue;
                     const effectSizeAbs = mdeType === 'relative' ? p1 * mdeValue : mdeValue;
                     const p2 = p1 + effectSizeAbs;
-
                     if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "..." };
                     const var1 = p1 * (1 - p1); const var2 = p2 * (1 - p2);
-                    
                     if (isConservative) {
-                        calculationMode = "保守模式 (Yates校正)";
                         samplePerGroup = calculateYatesCorrectedSampleSize(z_alpha_base, z_beta, p1, p2);
                     } else {
                         samplePerGroup = ((z_alpha_base * Math.sqrt(2 * ((var1 + var2) / 2))) + (z_beta * Math.sqrt(var1 + var2)))**2 / (effectSizeAbs**2);
                     }
                 } else { // Mean type
                     testMethod = "双样本t检验 (t-test)";
-                    const stdDev = stdDevValue;
-                    const mde = mdeValue;
-                    
+                    const stdDev = stdDevValue; const mde = mdeValue;
                     const n0 = 2 * (stdDev**2) * ((z_alpha_base + z_beta)**2) / (mde**2);
                     const df = 2 * n0 - 2;
                     const t_alpha = inv_t_cdf(1 - alpha / 2, df);
                     const t_beta = inv_t_cdf(power, df);
-
                     if (isConservative) {
-                        calculationMode = "保守模式 (HC4稳健方差)";
                         samplePerGroup = 2 * (stdDev**2) * ((t_alpha + t_beta)**2) / (mde**2) * 1.15;
                     } else {
-                        calculationMode = "标准模式 (t分布)";
                         samplePerGroup = 2 * (stdDev**2) * ((t_alpha + t_beta)**2) / (mde**2);
                     }
                 }
@@ -678,20 +676,15 @@
                 const numComparisons = numVariations - 1;
                 const bonferroni_alpha = alpha / numComparisons;
                 const z_alpha_corrected = inv_normal_cdf(1 - bonferroni_alpha / 2);
-
                 if (metricType === 'proportion') {
                      const p1 = baselineRateValue;
                      const effectSizeAbs = mdeType === 'relative' ? p1 * mdeValue : mdeValue;
                      const p2 = p1 + effectSizeAbs;
-
                      if (p1 < 0 || p1 > 1 || p2 < 0 || p2 > 1 || effectSizeAbs === 0) return { error: "..." };
-                     
                      const varianceHomogeneity = Math.abs(p1 - p2) <= 0.15;
                      if (!varianceHomogeneity) { testMethod = "Welch ANOVA (方差不齐)"; } 
                      else { testMethod = "方差分析 (ANOVA) - 近似计算"; }
-
                      if (isConservative) {
-                        calculationMode = "保守模式 (反正弦变换)";
                         const y1 = Math.asin(Math.sqrt(p1)); const y2 = Math.asin(Math.sqrt(p2));
                         const effectSizeTransformed = Math.abs(y2 - y1);
                         const stdDevTransformed = 0.5;
@@ -701,7 +694,6 @@
                         const t_beta_trans = inv_t_cdf(power, df_trans);
                         samplePerGroup = 2 * (stdDevTransformed**2) * ((t_alpha_trans + t_beta_trans)**2) / (effectSizeTransformed**2);
                      } else {
-                        calculationMode = "标准模式 (Bonferroni校正)";
                         const var1 = p1 * (1 - p1); const var2 = p2 * (1 - p2);
                         if (!varianceHomogeneity) {
                             samplePerGroup = calculateWelchANOVASampleSize(z_alpha_corrected, z_beta, p1, p2, Math.sqrt(var1), stdDevRatio, numVariations);
@@ -710,14 +702,11 @@
                         }
                      }
                 } else { // Mean type
-                     const stdDev = stdDevValue;
-                     const mde = mdeValue;
-
+                     const stdDev = stdDevValue; const mde = mdeValue;
                      const n0 = 2 * (stdDev**2) * ((z_alpha_corrected + z_beta)**2) / (mde**2);
                      const df = 2 * n0 - 2;
                      const t_alpha_corrected = inv_t_cdf(1 - bonferroni_alpha / 2, df);
                      const t_beta = inv_t_cdf(power, df);
-                     
                      const varianceHomogeneity = stdDevRatio <= 1.5;
                      if (!varianceHomogeneity) {
                         testMethod = "Welch ANOVA (方差不齐)";
@@ -725,25 +714,77 @@
                      } else {
                         testMethod = "方差分析 (ANOVA) - 近似计算";
                         if (isConservative) {
-                            calculationMode = "保守模式 (HC4稳健方差)";
                             samplePerGroup = 2 * (stdDev**2) * ((t_alpha_corrected + t_beta)**2) / (mde**2) * 1.2;
                         } else {
-                            calculationMode = "标准模式 (t分布 + Bonferroni校正)";
                             samplePerGroup = 2 * (stdDev**2) * ((t_alpha_corrected + t_beta)**2) / (mde**2);
                         }
                      }
                 }
             }
-
             samplePerGroup = Math.ceil(samplePerGroup);
             const totalSample = samplePerGroup * numVariations;
-
-            return { samplePerGroup, totalSample, testMethod, calculationMode, insights };
+            return { samplePerGroup, totalSample, testMethod };
         }
 
-        // This function runs a single scenario from start to finish
+        function calculateScheduleForTarget(targetSample, config) {
+            const { exposureRateValue, selectedSubjects, startDateStr } = config;
+            const startDate = new Date(startDateStr);
+            let resultsBySubject = [];
+            let allCalcsPossible = true;
+
+            for (const subject of selectedSubjects) {
+                let accumulatedUsers = 0;
+                let days = 0;
+                let currentDate = new Date(startDate);
+                let endDate = null;
+                let dailyBreakdown = [];
+
+                while (accumulatedUsers < targetSample) {
+                    const dateKey = currentDate.toISOString().split('T')[0];
+                    const dayData = dailyData[dateKey];
+                    if (!dayData) { endDate = null; break; }
+
+                    let dailyIncrease = 0;
+                    switch (subject) {
+                        case 'all': dailyIncrease = dayData.total; break;
+                        case 'chinese': dailyIncrease = dayData.chinese; break;
+                        case 'english': dailyIncrease = dayData.english; break;
+                        case 'math': dailyIncrease = dayData.math; break;
+                    }
+                    
+                    accumulatedUsers += dailyIncrease * (exposureRateValue / 100);
+                    days++;
+
+                    dailyBreakdown.push({
+                        date: dateKey,
+                        increase: dailyIncrease * (exposureRateValue / 100),
+                        cumulative: accumulatedUsers,
+                        progress: (accumulatedUsers / targetSample * 100)
+                    });
+                    
+                    if (accumulatedUsers >= targetSample) {
+                        endDate = new Date(currentDate);
+                        break;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                if (endDate) {
+                    resultsBySubject.push({ subject, days, endDate, dailyBreakdown });
+                } else {
+                    allCalcsPossible = false;
+                }
+            }
+            
+            if (resultsBySubject.length > 0 && allCalcsPossible) {
+                return resultsBySubject.reduce((max, current) => (current.days > max.days) ? current : max, resultsBySubject[0]);
+            } else {
+                return { error: `无法为学科 ${selectedSubjects.join(', ')} 攒够样本` };
+            }
+        }
+        
         function runSingleCalculation(config) {
-            const { baselineRateValue, exposureRateValue, ...staticConfig } = config;
+            const { baselineRateValue, ...staticConfig } = config;
             
             // --- STEP 1: Calculate Required Sample Size ---
             const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
@@ -758,87 +799,28 @@
                 return { error: "无法计算样本量" };
             }
             
-            let { samplePerGroup, totalSample, testMethod } = sampleSizeResult;
+            let { totalSample, testMethod } = sampleSizeResult;
 
             // --- STEP 2: Apply Filters ---
-            const { isPrimaryOnly, selectedSubjects, startDateStr } = staticConfig;
-
             let sampleAfterPrimaryFilter = totalSample;
-            if (isPrimaryOnly) {
+            if (staticConfig.isPrimaryOnly) {
                 sampleAfterPrimaryFilter = Math.ceil(totalSample / 0.70);
             }
-            
-            // LOGIC FIX: The final sample required is NOT affected by exposure rate. Exposure rate affects the *rate of accumulation*.
             const finalSample = sampleAfterPrimaryFilter;
 
             // --- STEP 3: Calculate Schedule ---
-            const startDate = new Date(startDateStr);
-            let resultsBySubject = [];
-            let allCalcsPossible = true;
+            const scheduleResult = calculateScheduleForTarget(finalSample, config);
+            if(scheduleResult.error) return { error: scheduleResult.error };
 
-            for (const subject of selectedSubjects) {
-                let accumulatedUsers = 0;
-                let days = 0;
-                let currentDate = new Date(startDate);
-                let endDate = null;
-                let dailyBreakdown = [];
-
-                while (accumulatedUsers < finalSample) {
-                    const dateKey = currentDate.toISOString().split('T')[0];
-                    const dayData = dailyData[dateKey];
-                    if (!dayData) { endDate = null; break; }
-
-                    let dailyIncrease = 0;
-                    switch (subject) {
-                        case 'all': dailyIncrease = dayData.total; break;
-                        case 'chinese': dailyIncrease = dayData.chinese; break;
-                        case 'english': dailyIncrease = dayData.english; break;
-                        case 'math': dailyIncrease = dayData.math; break;
-                    }
-                    
-                    // LOGIC FIX: Apply exposure rate to daily traffic, not total sample.
-                    accumulatedUsers += dailyIncrease * (exposureRateValue / 100);
-                    days++;
-
-                    dailyBreakdown.push({
-                        date: dateKey,
-                        increase: dailyIncrease * (exposureRateValue / 100),
-                        cumulative: accumulatedUsers,
-                        progress: (accumulatedUsers / finalSample * 100)
-                    });
-                    
-                    if (accumulatedUsers >= finalSample) {
-                        endDate = new Date(currentDate);
-                        break;
-                    }
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-                
-                if (endDate) {
-                    resultsBySubject.push({ subject, days, endDate, dailyBreakdown, finalAccumulation: accumulatedUsers });
-                } else {
-                    allCalcsPossible = false;
-                    resultsBySubject.push({ subject, days: Infinity, endDate: null, dailyBreakdown, finalAccumulation: accumulatedUsers });
-                }
-            }
-            
-            if (resultsBySubject.length > 0 && allCalcsPossible) {
-                const finalResult = resultsBySubject.reduce((max, current) => (current.days > max.days) ? current : max, resultsBySubject[0]);
-                return { ...finalResult, samplePerGroup, totalSample, finalSample, testMethod };
-            } else {
-                return { error: `无法为学科 ${selectedSubjects.join(', ')} 攒够样本` };
-            }
+            return { ...scheduleResult, finalSample, testMethod };
         }
 
-        // --- Main Calculation Event Listener (Now a Simulation Runner) ---
         calculateBtn.addEventListener('click', () => {
-            // Reset UI
             errorMessage.style.display = 'none';
             outputCard.style.display = 'none';
             detailsPanel.style.display = 'none';
             detailsTableBody.innerHTML = '';
             
-            // --- Get all static inputs from DOM ---
             const getNumericInput = (id) => parseFloat(document.getElementById(id).value);
             
             const expName = document.getElementById('expName').value;
@@ -882,12 +864,11 @@
 
             // --- Run Monte Carlo Simulation ---
             const simulations = 10000;
-            let durationResults = [];
+            let simulationResults = []; // Store {days, finalSample}
 
             for (let i = 0; i < simulations; i++) {
                 const randomBaseline = baselineMin + Math.random() * (baselineMax - baselineMin);
                 const randomExposure = exposureMin + Math.random() * (exposureMax - exposureMin);
-
                 const singleRunResult = runSingleCalculation({
                     ...staticConfig,
                     baselineRateValue: randomBaseline,
@@ -895,54 +876,67 @@
                 });
 
                 if (!singleRunResult.error) {
-                    durationResults.push(singleRunResult.days);
+                    simulationResults.push({ 
+                        days: singleRunResult.days, 
+                        finalSample: singleRunResult.finalSample,
+                        testMethod: singleRunResult.testMethod
+                    });
                 }
             }
 
-            if (durationResults.length < simulations * 0.5) { // If more than half the simulations fail
+            if (simulationResults.length < simulations * 0.5) {
                 errorMessage.innerHTML = `计算失败：在超过50%的模拟场景下，无法在 2025-09-30 前攒够所需样本量。<br>请检查输入范围，特别是基线值和MDE是否过低。`;
                 errorMessage.style.display = 'block';
                 return;
             }
 
             // --- Analyze simulation results ---
-            durationResults.sort((a, b) => a - b);
-            const lowerBoundIndex = Math.floor(durationResults.length * 0.05);
-            const upperBoundIndex = Math.ceil(durationResults.length * 0.95) - 1;
-            const minDays = durationResults[lowerBoundIndex];
-            const maxDays = durationResults[upperBoundIndex];
+            simulationResults.sort((a, b) => a.days - b.days);
 
-            // --- Run one more time with average values for representative details ---
-            const avgBaseline = (baselineMin + baselineMax) / 2;
-            const avgExposure = (exposureMin + exposureMax) / 2;
-            const representativeRun = runSingleCalculation({
+            // 1. 定义70%概率区间 (截去头部20%和尾部10%)
+            const lowerBoundIndex = Math.floor(simulationResults.length * 0.20);
+            const upperBoundIndex = Math.floor(simulationResults.length * 0.90);
+            const minDays = simulationResults[lowerBoundIndex].days;
+            const maxDays = simulationResults[upperBoundIndex].days;
+            const testMethod = simulationResults[0].testMethod; // Test method is consistent across runs
+
+            // 2. 在此70%区间内，计算样本量的均值
+            const filteredResults = simulationResults.slice(lowerBoundIndex, upperBoundIndex + 1);
+            const sumOfSamples = filteredResults.reduce((total, current) => total + current.finalSample, 0);
+            const avgFilteredSample = Math.round(sumOfSamples / filteredResults.length);
+
+            // 3. 基于样本量均值，反推平均天数和逐日明细
+            const avgConfig = {
                 ...staticConfig,
-                baselineRateValue: avgBaseline,
-                exposureRateValue: avgExposure
-            });
+                exposureRateValue: (exposureMin + exposureMax) / 2
+            };
+            const avgRunResult = calculateScheduleForTarget(avgFilteredSample, avgConfig);
             
-            if(representativeRun.error){
+            if(avgRunResult.error){
                  errorMessage.innerHTML = `无法生成代表性排期，请检查输入。`;
                  errorMessage.style.display = 'block';
                  return;
             }
-
+            const avgDays = avgRunResult.days;
+            
             // --- Display results ---
             const startDate = new Date(startDateStr);
             const minEndDate = new Date(startDate);
-            minEndDate.setDate(startDate.getDate() + minDays -1);
+            minEndDate.setDate(startDate.getDate() + minDays - 1);
             const maxEndDate = new Date(startDate);
-            maxEndDate.setDate(startDate.getDate() + maxDays-1);
+            maxEndDate.setDate(startDate.getDate() + maxDays - 1);
             
             document.getElementById('outputExpName').textContent = expName;
-            document.getElementById('outputSamplePerGroup').textContent = representativeRun.samplePerGroup.toLocaleString();
-            document.getElementById('outputTotalSample').textContent = representativeRun.finalSample.toLocaleString();
+            document.getElementById('outputSamplePerGroup').textContent = Math.round(avgFilteredSample / staticConfig.numVariations).toLocaleString();
+            document.getElementById('outputTotalSample').textContent = avgFilteredSample.toLocaleString();
             document.getElementById('outputEndDate').textContent = `${minEndDate.toLocaleDateString('zh-CN')} ~ ${maxEndDate.toLocaleDateString('zh-CN')}`;
+            document.getElementById('outputAvgDuration').textContent = `${avgDays} 天`;
             document.getElementById('outputDuration').textContent = `${minDays} ~ ${maxDays} 天`;
-            document.getElementById('outputTestMethod').textContent = representativeRun.testMethod;
+            document.getElementById('outputTestMethod').textContent = testMethod;
 
             let insights = [];
-            insights.push(`<b>区间预测说明</b>: 基于10000次蒙特卡洛模拟，预测实验周期有90%的概率落在 <b>${minDays} ~ ${maxDays} 天</b> 之间。`);
+            insights.push(`<b>区间预测说明</b>: 基于10000次模拟，实验所需总样本量的均值为 <b>${avgFilteredSample.toLocaleString()}</b> (在70%概率区间内计算)，由此推算预估平均耗时为 <b>${avgDays} 天</b>。`);
+            insights.push(`排除掉20%的过快情况和10%的过慢情况后，实验周期有70%的概率落在 <b>${minDays} ~ ${maxDays} 天</b> 之间。`);
 
             if (maxDays > 60) {
                  insights.push(`<span class="result-warning">周期过长警告：预估周期上限超过60天风险极高，强烈建议调整实验设计（如放宽MDE或扩大流量）。</span>`);
@@ -956,8 +950,7 @@
             document.getElementById('result_insights').innerHTML = insights.join('<hr style="border-color: var(--border-color); margin: 10px 0;">');
             outputCard.style.display = 'block';
 
-            // Display details table from the representative run
-            representativeRun.dailyBreakdown.forEach(day => {
+            avgRunResult.dailyBreakdown.forEach(day => {
                 const row = document.createElement('tr');
                 const progressPercent = Math.min(day.progress, 100).toFixed(2);
                 row.innerHTML = `
