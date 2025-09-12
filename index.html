@@ -353,6 +353,7 @@
         <div class="header">
             <h1>蜜蜂家校小程序端AB实验测算平台</h1>
             <h1>（仅新注册老师）</h1>
+            <p style="font-size: 0.9em; color: var(--secondary-color); margin-top: 8px;">最后更新日期: 2025年09月12日</p>
         </div>
 
         <div class="content-wrapper">
@@ -407,16 +408,6 @@
                                 <span id="baseline_unit_max" class="input-append">%</span>
                             </div>
                             <p class="description">【已被曝光】的用户群体，在核心指标上的当前数值范围。</p>
-                        </div>
-                        <div class="input-group hidden" id="std_dev_group">
-                            <label for="std_dev">3a. 指标标准差 (Standard Deviation)</label>
-                            <input type="number" id="std_dev" value="50">
-                            <p class="description">仅当指标为均值类时需要。请与BI同学确认该指标的历史标准差。</p>
-                        </div>
-                        <div class="input-group hidden" id="std_dev_ratio_group">
-                            <label for="std_dev_ratio">3b. 组间标准差比率 (最大/最小)</label>
-                            <input type="number" id="std_dev_ratio" value="1.5" min="1" max="5" step="0.1">
-                            <p class="description">用于Welch ANOVA计算，估计组间标准差的最大差异程度。</p>
                         </div>
                         <div class="input-group">
                             <label for="mde">4. 最小可检测效应 (MDE)</label>
@@ -786,7 +777,6 @@
         function runSingleCalculation(config) {
             const { baselineRateValue, ...staticConfig } = config;
             
-            // --- STEP 1: Calculate Required Sample Size ---
             const mdeType = document.querySelector('input[name="mde_type"]:checked').value;
             const sampleSizeParams = {
                 ...staticConfig,
@@ -801,14 +791,12 @@
             
             let { totalSample, testMethod } = sampleSizeResult;
 
-            // --- STEP 2: Apply Filters ---
             let sampleAfterPrimaryFilter = totalSample;
             if (staticConfig.isPrimaryOnly) {
                 sampleAfterPrimaryFilter = Math.ceil(totalSample / 0.70);
             }
             const finalSample = sampleAfterPrimaryFilter;
 
-            // --- STEP 3: Calculate Schedule ---
             const scheduleResult = calculateScheduleForTarget(finalSample, config);
             if(scheduleResult.error) return { error: scheduleResult.error };
 
@@ -848,8 +836,8 @@
                 alpha: getNumericInput('alpha') / 100,
                 metricType: document.getElementById('metric_type').value,
                 isConservative: document.querySelector('input[name="conservative"]:checked').value === 'yes',
-                stdDevRatio: getNumericInput('std_dev_ratio'),
-                stdDevValue: getNumericInput('std_dev'),
+                stdDevRatio: 1, // 固定为理想值1
+                stdDevValue: (baselineMin + baselineMax) / 2, // 根据基线均值估算
                 mdeValue: getNumericInput('mde'),
                 isPrimaryOnly: document.querySelector('input[name="is_primary"]:checked').value === 'yes',
                 selectedSubjects: Array.from(document.querySelectorAll('input[name="subject"]:checked')).map(cb => cb.value),
@@ -974,13 +962,9 @@
         
         function handleUiChanges() {
             const metricType = document.getElementById('metric_type').value;
-            const numVariations = parseInt(document.getElementById('num_variations').value) || 2;
             const isProportion = metricType === 'proportion';
-            const isMultipleGroups = numVariations > 2;
             
-            document.getElementById('std_dev_group').classList.toggle('hidden', isProportion);
             document.getElementById('mde_type_group').classList.toggle('hidden', !isProportion);
-            document.getElementById('std_dev_ratio_group').classList.toggle('hidden', !isMultipleGroups);
             
             const baselineLabel = document.getElementById('baseline_label');
             const baselineUnitMin = document.getElementById('baseline_unit_min');
