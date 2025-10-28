@@ -376,8 +376,9 @@
                             <input type="file" id="fileUploader" accept=".json" style="padding: 10px; width: 100%; background-color: var(--bg-color); border: 1px dashed var(--border-color); border-radius: 6px; color: var(--text-color);">
                             <div id="uploadStatus" style="margin-top: 10px; font-weight: bold; text-align: center; padding: 8px; border-radius: 4px;"></div>
                             <p class="description">
-                                上传文件将覆盖内置数据源。请确保JSON结构为 <code>{"YYYY-MM-DD": {"math": 1, "chinese": 2, "english": 3, "other": 4, "total": 10}, ...}</code>(此外无其他内容，文件后缀为.json  此步骤建议使用AI完成格式转换)
+                                上传文件将覆盖内置数据源。请确保JSON结构为 <code>{"YYYY-MM-DD": {"math": 1, "chinese": 2, "english": 3, "other": 4, "total": 10}, ...}</code>(此外无其他内容，文件后缀为.json )
                             </p>
+                            <p>此步骤建议使用AI完成格式转换，建议使用豆包（可在线转换），参考prompt:“分析我上传的数据源文件，将其转换为下面的json格式：{"2025-10-22": {"math": 268, "chinese": 1026, "english": 1224, "other": 178, "total": 2696},"2025-10-23": {"math": 250, "chinese": 900, "english": 942, "other": 165, "total": 2257}}”</p>
                         </div>
                     </div>
 
